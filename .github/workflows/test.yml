@@ -1,0 +1,17 @@
+name: Test Self Hosted
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: self-hosted   # IMPORTANT
+
+    steps:
+      - name: Create test file
+        run: |
+          echo "Hello from GitHub Actions" >> test.file
+          cat test.file
+
