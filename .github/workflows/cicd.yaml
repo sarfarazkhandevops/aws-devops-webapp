@@ -63,7 +63,7 @@ jobs:
         run: |
           docker pull 306719643101.dkr.ecr.us-east-1.amazonaws.com/webapp:latest
 
-      # ✅ SIMPLE deploy (recommended instead of docker-compose for now)
+      #  SIMPLE deploy (recommended instead of docker-compose for now)
       - name: Run container
         run: |
           docker stop webapp || true
