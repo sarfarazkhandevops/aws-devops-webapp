@@ -4,7 +4,7 @@ const app = express();
 const PORT = 3000;
 
 app.get("/", (req, res) => {
-  res.send("Hello World from Node.js company");
+  res.send("Hello World from Node.js company ongraph");
 });
 
 app.get("/health", (req, res) => {
