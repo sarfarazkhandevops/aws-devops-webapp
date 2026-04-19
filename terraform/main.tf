@@ -112,67 +112,77 @@ module "asg" {
   max_size         = var.max_size
 
   user_data = <<EOF
-!/bin/bash
 user_data = <<EOF
 #!/bin/bash
-set -e
+set -ex
 
+# Log everything
+exec > /var/log/user-data.log 2>&1
+
+echo "Starting user-data script..."
+
+#################### WAIT ####################
+sleep 30
+
+#################### SYSTEM UPDATE ####################
 echo "Updating system packages..."
-apt update -y
-apt upgrade -y
+sudo apt-get update -y
+sudo apt-get upgrade -y
 
+#################### INSTALL DEPENDENCIES ####################
 echo "Installing dependencies..."
-apt install -y ca-certificates curl gnupg lsb-release git wget unzip
+sudo apt-get install -y ca-certificates curl gnupg lsb-release git wget unzip
 
 #################### DOCKER SETUP ####################
-
 echo "Adding Docker GPG key..."
-install -m 0755 -d /etc/apt/keyrings
+sudo install -m 0755 -d /etc/apt/keyrings
 
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
-chmod a+r /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
 echo "Adding Docker repo..."
-echo "deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu noble stable" > /etc/apt/sources.list.d/docker.list
+echo "deb [arch=\\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu noble stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-apt update -y
+sudo apt-get update -y
 
 echo "Installing Docker..."
-apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-systemctl enable docker
-systemctl start docker
+sudo systemctl enable docker
+sudo systemctl start docker
 
-usermod -aG docker ubuntu
+# Wait for Docker
+sleep 15
+
+sudo usermod -aG docker ubuntu
 
 #################### APP DEPLOY ####################
-
 echo "Cloning repo..."
-
-apt install git -y
 cd /home/ubuntu
-git clone https://github.com/sarfarazkhandevops/aws-devops-webapp.git
 
-cd aws-devops-webapp
+if [ ! -d "aws-devops-webapp" ]; then
+  sudo git clone https://github.com/sarfarazkhandevops/aws-devops-webapp.git
+fi
+
+cd aws-devops-webapp/webapp
 
 echo "Building Docker image..."
-docker build -t webapp .
+sudo docker build -t webapp .
 
 echo "Running container..."
-docker run -d -p 80:3000 webapp
+sudo docker run -d -p 80:3000 --restart=always webapp || true
 
 #################### CLOUDWATCH ####################
-
 echo "Installing CloudWatch Agent..."
 
-wget https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+sudo wget -P /tmp https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
 
-dpkg -i amazon-cloudwatch-agent.deb || apt-get install -f -y
+sudo dpkg -i /tmp/amazon-cloudwatch-agent.deb || sudo apt-get install -f -y
 
-mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
+sudo mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
 
-cat <<EOT > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+cat <<EOT | sudo tee /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json > /dev/null
 {
   "agent": {
     "metrics_collection_interval": 60,
@@ -180,22 +190,16 @@ cat <<EOT > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
   },
   "metrics": {
     "append_dimensions": {
-      "InstanceId": "\$${aws:InstanceId}"
+      "InstanceId": "\\$${aws:InstanceId}"
     },
     "metrics_collected": {
       "mem": {
-        "measurement": [
-          "mem_used_percent"
-        ],
+        "measurement": ["mem_used_percent"],
         "metrics_collection_interval": 60
       },
       "disk": {
-        "measurement": [
-          "used_percent"
-        ],
-        "resources": [
-          "/"
-        ],
+        "measurement": ["used_percent"],
+        "resources": ["/"],
         "metrics_collection_interval": 60
       }
     }
@@ -203,21 +207,22 @@ cat <<EOT > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
 }
 EOT
 
-/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
-  -a fetch-config \
-  -m ec2 \
-  -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \\
+  -a fetch-config \\
+  -m ec2 \\
+  -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \\
   -s
 
-systemctl enable amazon-cloudwatch-agent
-systemctl restart amazon-cloudwatch-agent
+sudo systemctl enable amazon-cloudwatch-agent
+sudo systemctl restart amazon-cloudwatch-agent
 
 #################### COLLECTD ####################
+echo "Installing collectd..."
+sudo apt-get install -y collectd
 
-apt install -y collectd
-
-echo "Deployment completed successfully!"
+echo "✅ Deployment completed successfully!"
 EOF
+
 
   tags = {
     Project = "demo-app"
@@ -261,5 +266,6 @@ module "ecr" {
     Project     = "ecr-demo"
   }
 }
+
 
 
