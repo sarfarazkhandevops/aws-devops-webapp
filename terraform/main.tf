@@ -1,6 +1,6 @@
-# -----------------------------
+# ---------------
 # 1. VPC MODULE
-# -----------------------------
+# ----------------
 module "vpc" {
   source = "./modules/vpc"
 
@@ -31,9 +31,9 @@ module "iam" {
   }
 }
 
-# -----------------------------
+# -----------------------------------------------
 # 3. SECURITY GROUPS (INLINE SIMPLE)
-# -----------------------------
+# -----------------------------------------------
 resource "aws_security_group" "alb_sg" {
   name   = "alb-sg"
   vpc_id = module.vpc.vpc_id
@@ -72,9 +72,9 @@ resource "aws_security_group" "app_sg" {
   }
 }
 
-# -----------------------------
+# --------------
 # 4. ALB MODULE
-# -----------------------------
+# --------------
 module "alb" {
   source = "./modules/alb"
 
@@ -90,9 +90,9 @@ module "alb" {
   }
 }
 
-# -----------------------------
+# ------------------------------------------
 # 5. ASG MODULE (PRIVATE SUBNET)
-# -----------------------------
+# ----------------------------------------
 module "asg" {
   source = "./modules/asg"
 
@@ -124,7 +124,7 @@ echo "Starting user-data script..."
 #################### WAIT ####################
 sleep 30
 
-#################### SYSTEM UPDATE ####################
+################# SYSTEM UPDATE ################
 echo "Updating system packages..."
 sudo apt-get update -y
 sudo apt-get upgrade -y
@@ -133,7 +133,7 @@ sudo apt-get upgrade -y
 echo "Installing dependencies..."
 sudo apt-get install -y ca-certificates curl gnupg lsb-release git wget unzip
 
-#################### DOCKER SETUP ####################
+#################### DOCKER SETUP ###############
 echo "Adding Docker GPG key..."
 sudo install -m 0755 -d /etc/apt/keyrings
 
