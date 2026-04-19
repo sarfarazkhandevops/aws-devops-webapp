@@ -50,7 +50,7 @@ The infrastructure is designed using Terraform and follows best practices:
   - IAM Roles
   - Security Groups
 
--ECR:
+- ECR:
   - To store the docker images 
 
 ---
