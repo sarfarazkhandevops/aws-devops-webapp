@@ -16,6 +16,12 @@ The infrastructure is designed using Terraform and follows best practices:
 - ECR for storing docker images
 
 
+## 🏗️ Architecture Diagram
+
+![Architecture Diagram](architecture/aws.png)
+
+
+
 ---
 
 # 🧱 PART 1: INFRASTRUCTURE AS CODE (IaC)
