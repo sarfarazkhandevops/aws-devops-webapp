@@ -1,4 +1,5 @@
-name: CI-CD ECR Zero Downtime Deploy
+
+name: CI-CD ECR Deploy
 
 on:
   push:
@@ -24,24 +25,22 @@ jobs:
         run: |
           aws ecr get-login-password --region us-east-1 | \
           docker login --username AWS --password-stdin 306719643101.dkr.ecr.us-east-1.amazonaws.com
-
+      # ✅ FIXED: build from webapp folder
       - name: Build Docker Image
         run: docker build -t webapp ./webapp
 
-      - name: Tag Image
+      - name: Tag Docker Image
         run: |
           docker tag webapp:latest 306719643101.dkr.ecr.us-east-1.amazonaws.com/webapp:latest
-
-      - name: Push Image
+      - name: Push to ECR
         run: |
           docker push 306719643101.dkr.ecr.us-east-1.amazonaws.com/webapp:latest
-
-
   deploy:
     runs-on: self-hosted
     needs: build-push
 
     steps:
+      # ❗ IMPORTANT: checkout needed if using docker-compose.yml
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -52,8 +51,17 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Run Zero Downtime Deployment
+      - name: Login to ECR
         run: |
-          chmod +x deploy.sh
-          ./deploy.sh
-
+          aws ecr get-login-password --region us-east-1 | \
+          docker login --username AWS --password-stdin 306719643101.dkr.ecr.us-east-1.amazonaws.com
+      - name: Pull latest image
+        run: |
+         sudo  docker pull 306719643101.dkr.ecr.us-east-1.amazonaws.com/webapp:latest
+      #  SIMPLE deploy 
+      - name: Run container
+        run: |
+          sudo docker stop webapp || true
+          sudo docker rm webapp || true
+          sudo docker run -d -p 80:3000 --name webapp \
+            306719643101.dkr.ecr.us-east-1.amazonaws.com/webapp:latest

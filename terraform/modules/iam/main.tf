@@ -34,3 +34,11 @@ resource "aws_iam_instance_profile" "ssm_profile" {
   name = var.instance_profile_name
   role = aws_iam_role.ssm_role.name
 }
+
+
+# Attach ECR ReadOnly Policy
+resource "aws_iam_role_policy_attachment" "ecr_readonly" {
+  role       = aws_iam_role.ssm_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
